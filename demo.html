@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Markdown Split Editor Demo</title>
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      .markdown-split-editor { display: flex; height: 100vh; }
+      .markdown-input, .markdown-preview { box-sizing: border-box; padding: 12px; border: 1px solid #ddd; overflow: auto; }
+      .markdown-input { resize: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { MarkdownSplitEditor } from './src/editor/index.js';
+      const app = document.getElementById('app');
+      const editor = new MarkdownSplitEditor({
+        mount: app,
+        tabId: 'demo-tab',
+        initialText: '# Demo\n\n- [x] Task\n\n```js\nconsole.log("hi")\n```\n\n| A | B |\n|---|---|\n|1|2|'
+      });
+      editor.setSplitRatio(0.5);
+    </script>
+  </body>
+</html>
