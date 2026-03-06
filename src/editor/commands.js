@@ -1,11 +1,13 @@
-function insertAroundSelection(textarea, prefix, suffix = prefix) {
+function insertAroundSelection(textarea, prefix, suffix = prefix, placeholder = '') {
   const { selectionStart, selectionEnd, value } = textarea;
   const selected = value.slice(selectionStart, selectionEnd);
-  const replacement = `${prefix}${selected}${suffix}`;
+  const innerText = selected || placeholder;
+  const replacement = `${prefix}${innerText}${suffix}`;
 
   textarea.setRangeText(replacement, selectionStart, selectionEnd, 'end');
-  const cursorEnd = selectionStart + replacement.length;
-  textarea.setSelectionRange(cursorEnd, cursorEnd);
+  const nextStart = selectionStart + prefix.length;
+  const nextEnd = nextStart + innerText.length;
+  textarea.setSelectionRange(nextStart, nextEnd);
 }
 
 function insertLinePrefix(textarea, prefix) {
@@ -24,17 +26,21 @@ function insertLinePrefix(textarea, prefix) {
 }
 
 export const formattingCommands = {
-  bold: (textarea) => insertAroundSelection(textarea, '**'),
-  italic: (textarea) => insertAroundSelection(textarea, '*'),
+  bold: (textarea) => insertAroundSelection(textarea, '**', '**', 'bold text'),
+  italic: (textarea) => insertAroundSelection(textarea, '*', '*', 'italic text'),
   heading1: (textarea) => insertLinePrefix(textarea, '# '),
   heading2: (textarea) => insertLinePrefix(textarea, '## '),
   heading3: (textarea) => insertLinePrefix(textarea, '### '),
-  codeBlock: (textarea) => insertAroundSelection(textarea, '\n```\n', '\n```\n'),
+  bulletList: (textarea) => insertLinePrefix(textarea, '- '),
+  blockquote: (textarea) => insertLinePrefix(textarea, '> '),
+  taskList: (textarea) => insertLinePrefix(textarea, '- [ ] '),
+  codeBlock: (textarea) => insertAroundSelection(textarea, '\n```\n', '\n```\n', 'code'),
   link: (textarea, href = 'https://') => {
     const { selectionStart, selectionEnd, value } = textarea;
     const selected = value.slice(selectionStart, selectionEnd) || 'link text';
     const replacement = `[${selected}](${href})`;
     textarea.setRangeText(replacement, selectionStart, selectionEnd, 'end');
+    textarea.setSelectionRange(selectionStart + 1, selectionStart + 1 + selected.length);
   }
 };
 

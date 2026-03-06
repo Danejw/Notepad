@@ -1,5 +1,5 @@
 import { renderMarkdown } from './markdown.js';
-import { handleFormattingKeydown } from './commands.js';
+import { formattingCommands, handleFormattingKeydown } from './commands.js';
 import { getDefaultViewState, loadViewState, saveViewState } from './viewState.js';
 
 export class MarkdownSplitEditor {
@@ -9,6 +9,7 @@ export class MarkdownSplitEditor {
       tabId,
       initialText = '',
       trustedMode = false,
+      placeholder = 'Start typing your note...',
       onChange
     } = options;
 
@@ -23,10 +24,13 @@ export class MarkdownSplitEditor {
 
     this.leftPane = document.createElement('textarea');
     this.leftPane.className = 'markdown-input';
+    this.leftPane.placeholder = placeholder;
+    this.leftPane.spellcheck = true;
     this.leftPane.value = initialText;
 
     this.rightPane = document.createElement('div');
     this.rightPane.className = 'markdown-preview';
+    this.rightPane.dataset.placeholder = 'Preview updates as you type.';
 
     this.container.append(this.leftPane, this.rightPane);
     this.mount.appendChild(this.container);
@@ -35,27 +39,60 @@ export class MarkdownSplitEditor {
     this.setPreviewEnabled(this.state.previewEnabled);
 
     this.leftPane.addEventListener('input', () => {
-      this.render();
-      this.persist({ cursorPosition: this.leftPane.selectionStart });
-      this.onChange?.(this.leftPane.value);
+      this.handleValueChange();
     });
 
     this.leftPane.addEventListener('click', () => {
       this.persist({ cursorPosition: this.leftPane.selectionStart });
     });
 
+    this.leftPane.addEventListener('keyup', () => {
+      this.persist({ cursorPosition: this.leftPane.selectionStart });
+    });
+
     this.leftPane.addEventListener('keydown', (event) => {
       if (handleFormattingKeydown(event, this.leftPane)) {
-        this.render();
+        this.handleValueChange();
       }
     });
 
-    if (this.state.syncScrollEnabled) {
-      this.leftPane.addEventListener('scroll', () => this.syncScroll());
+    this.leftPane.addEventListener('scroll', () => this.syncScroll());
+
+    const initialCursorPosition = Math.max(0, Math.min(this.state.cursorPosition, this.leftPane.value.length));
+    this.leftPane.setSelectionRange(initialCursorPosition, initialCursorPosition);
+    this.render();
+  }
+
+  getValue() {
+    return this.leftPane.value;
+  }
+
+  setValue(value, options = {}) {
+    const { cursorPosition = 0, focus = false } = options;
+    this.leftPane.value = value ?? '';
+    const nextCursorPosition = Math.max(0, Math.min(cursorPosition, this.leftPane.value.length));
+    this.leftPane.setSelectionRange(nextCursorPosition, nextCursorPosition);
+    this.handleValueChange();
+
+    if (focus) {
+      this.focus();
+    }
+  }
+
+  focus() {
+    this.leftPane.focus();
+  }
+
+  applyCommand(commandName, ...args) {
+    const command = formattingCommands[commandName];
+    if (!command) {
+      return false;
     }
 
-    this.leftPane.setSelectionRange(this.state.cursorPosition, this.state.cursorPosition);
-    this.render();
+    command(this.leftPane, ...args);
+    this.handleValueChange();
+    this.focus();
+    return true;
   }
 
   setTrustedMode(enabled) {
@@ -77,7 +114,13 @@ export class MarkdownSplitEditor {
   setPreviewEnabled(enabled) {
     this.persist({ previewEnabled: enabled });
     this.rightPane.style.display = enabled ? 'block' : 'none';
-    this.leftPane.style.width = enabled ? `${this.state.splitRatio * 100}%` : '100%';
+
+    if (enabled) {
+      this.applySplitRatio();
+      return;
+    }
+
+    this.leftPane.style.width = '100%';
   }
 
   setSyncScrollEnabled(enabled) {
@@ -105,8 +148,17 @@ export class MarkdownSplitEditor {
   }
 
   render() {
-    this.rightPane.innerHTML = renderMarkdown(this.leftPane.value, {
+    const value = this.leftPane.value;
+
+    this.rightPane.innerHTML = renderMarkdown(value, {
       trustedMode: this.trustedMode
     });
+    this.rightPane.dataset.empty = String(!value.trim());
+  }
+
+  handleValueChange() {
+    this.render();
+    this.persist({ cursorPosition: this.leftPane.selectionStart });
+    this.onChange?.(this.leftPane.value);
   }
 }

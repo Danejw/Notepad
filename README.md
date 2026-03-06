@@ -1,85 +1,107 @@
-# Notepad Editor Module
+# Markdown Notepad
 
-A lightweight JavaScript markdown editor module that provides:
+A lightweight markdown notepad with split-view editing, live preview, local autosave, formatting shortcuts, and safe HTML sanitization by default.
 
-- **Split-view markdown editing** (source on the left, rendered preview on the right).
-- **Live markdown rendering** with support for:
-  - headings
-  - emphasis (bold/italic)
-  - lists
-  - links
-  - images
-  - tables
-  - fenced code blocks
-  - blockquotes
-  - task lists
-- **Formatting commands + keybindings** for common authoring tasks.
-- **Safe rendering defaults** via HTML sanitization, with optional trusted mode.
-- **Per-tab view state persistence** (cursor position, split ratio, preview visibility, sync-scroll preference).
-- **Smoke tests** for representative markdown conversion + sanitization behavior.
+## What changed in this version
 
-## What was built
+- A more usable browser notepad in `demo.html` with:
+  - local autosave
+  - import/export for `.md` and `.txt`
+  - formatting toolbar
+  - preview and sync-scroll toggles
+  - live word, character, line, and reading-time status
+- A built-in local web server so you can run the app with `npm run dev` on Windows.
+- The core editor still exports the reusable module API from `src/editor/`.
 
-The implementation is organized under `src/editor/`:
+## Download, install, and run on Windows
 
-- `markdown.js`
-  - Configures `markdown-it` + `markdown-it-task-lists`.
-  - Exposes `renderMarkdown()` and `markdownToHtml()`.
-  - Sanitizes output by default using `sanitize-html`.
-  - Supports a `trustedMode` toggle to allow raw HTML output.
+### 1. Download the project
 
-- `splitView.js`
-  - Exposes `MarkdownSplitEditor`.
-  - Renders a split layout:
-    - left: editable `<textarea>` markdown input
-    - right: rendered preview pane
-  - Supports optional synchronized scrolling.
-  - Persists and restores tab-specific editor view state.
+Choose one option:
 
-- `commands.js`
-  - Provides formatting commands:
-    - bold
-    - italic
-    - heading1/heading2/heading3
-    - codeBlock
-    - link
-  - Includes default keybindings:
-    - `Mod-b`, `Mod-i`, `Mod-1`, `Mod-2`, `Mod-3`, `Mod-Shift-c`, `Mod-k`
+#### Option A: Download the ZIP from your Git host
 
-- `viewState.js`
-  - Provides helpers to load/save per-tab view state from `localStorage`.
+1. Open the repository page in your browser.
+2. Select **Code** > **Download ZIP**.
+3. Extract the ZIP to a folder such as `C:\Projects\Notepad`.
 
-- `index.js`
-  - Exports the module API surface.
+#### Option B: Clone with Git
 
-A minimal browser demo is available at `demo.html`.
+If Git is installed, open PowerShell and run:
 
----
+```powershell
+git clone <your-repository-url> C:\Projects\Notepad
+cd C:\Projects\Notepad
+```
 
-## Installation
+### 2. Install Node.js
 
-### Prerequisites
+Install Node.js 18 or newer on Windows. If Node is not installed yet, install the current LTS release, then reopen PowerShell.
 
-- Node.js 18+ (recommended)
-- npm
+Check that it is available:
 
-### Install dependencies
+```powershell
+node -v
+npm -v
+```
 
-```bash
+### 3. Install dependencies
+
+From the project folder, run:
+
+```powershell
 npm install
 ```
 
----
+### 4. Start the notepad
 
-## Usage
+Run the local server:
 
-### 1) Run tests
-
-```bash
-npm test
+```powershell
+npm run dev
 ```
 
-### 2) Use the markdown renderer directly
+Then open this address in your browser:
+
+```text
+http://127.0.0.1:4173
+```
+
+### 5. Stop the app
+
+In the PowerShell window that is running the server, press `Ctrl+C`.
+
+## Quick usage
+
+- Type in the left pane and watch the preview update on the right.
+- Use the toolbar or keyboard shortcuts to format markdown faster.
+- Use **Import file** to load a `.md` or `.txt` note.
+- Use **Export .md** to save the current note to disk.
+- The demo autosaves the current note in your browser on that device.
+
+## Keyboard shortcuts
+
+When focus is in the editor textarea:
+
+- `Ctrl+B` or `Cmd+B`: bold
+- `Ctrl+I` or `Cmd+I`: italic
+- `Ctrl+1`: heading 1
+- `Ctrl+2`: heading 2
+- `Ctrl+3`: heading 3
+- `Ctrl+Shift+C`: fenced code block
+- `Ctrl+K`: insert link
+
+## Installation for development
+
+```powershell
+npm install
+npm test
+npm run dev
+```
+
+## Module usage
+
+### Render markdown directly
 
 ```js
 import { renderMarkdown } from './src/editor/index.js';
@@ -87,13 +109,13 @@ import { renderMarkdown } from './src/editor/index.js';
 const html = renderMarkdown('# Hello **Markdown**');
 ```
 
-Use trusted mode only when content source is trusted:
+Use trusted mode only when the source content is trusted:
 
 ```js
 const html = renderMarkdown('<b>raw html</b>', { trustedMode: true });
 ```
 
-### 3) Mount the split-view editor
+### Mount the split-view editor
 
 ```js
 import { MarkdownSplitEditor } from './src/editor/index.js';
@@ -110,47 +132,23 @@ const editor = new MarkdownSplitEditor({
   }
 });
 
-// Optional controls
-editor.setSplitRatio(0.6);         // 60% editor, 40% preview
-editor.setPreviewEnabled(true);    // show/hide preview
-editor.setSyncScrollEnabled(true); // sync editor/preview scrolling
-editor.setTrustedMode(false);      // toggle sanitized/trusted rendering
+editor.setSplitRatio(0.6);
+editor.setPreviewEnabled(true);
+editor.setSyncScrollEnabled(true);
+editor.setTrustedMode(false);
+editor.applyCommand('bold');
 ```
 
-### 4) Keyboard formatting shortcuts
+Useful instance methods:
 
-When focus is in the editor textarea:
-
-- `Mod-b` → bold
-- `Mod-i` → italic
-- `Mod-1` → H1
-- `Mod-2` → H2
-- `Mod-3` → H3
-- `Mod-Shift-c` → fenced code block
-- `Mod-k` → link insertion
-
-(`Mod` means `Ctrl` on Windows/Linux and `Cmd` on macOS.)
-
-### 5) Open the demo in a browser
-
-Serve the repository root with any static server, for example:
-
-```bash
-python -m http.server 4173
-```
-
-Then open:
-
-- `http://127.0.0.1:4173/demo.html`
-
----
-
-## Notes on safety
-
-- By default, rendered markdown is sanitized.
-- `trustedMode: true` bypasses sanitization and should only be used for trusted inputs.
-
----
+- `editor.getValue()`
+- `editor.setValue(markdown, options)`
+- `editor.focus()`
+- `editor.applyCommand(commandName, ...args)`
+- `editor.setSplitRatio(ratio)`
+- `editor.setPreviewEnabled(enabled)`
+- `editor.setSyncScrollEnabled(enabled)`
+- `editor.setTrustedMode(enabled)`
 
 ## Project structure
 
@@ -161,8 +159,15 @@ src/editor/
   markdown.js
   splitView.js
   viewState.js
+scripts/
+  serve.js
 tests/
   markdown.smoke.test.js
 demo.html
 package.json
 ```
+
+## Notes on safety
+
+- Rendered markdown is sanitized by default.
+- `trustedMode: true` bypasses sanitization and should only be used for trusted input.
